@@ -1,7 +1,7 @@
 # react-tiny
 Tiny implementation of React in flow
 
-# Demo
+# demo
 
 See demo in `/demo`, 
 
