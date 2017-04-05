@@ -559,7 +559,7 @@ function instantiateReactComponent(element: ReactElementT): ReactComponent {
     if (typeof type === 'string') {
         return new ReactDOMComponent(element);
     } else {
-        console.assert(typeof type === 'function', 'type of ReactElement should be string or funciton');
+        console.assert(typeof type === 'function', 'type of ReactElement should be string or function');
         return new ReactCompositeComponent(element);
     }
 }
