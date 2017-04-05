@@ -1,0 +1,22 @@
+{
+  "scripts": {
+    "dev": "dora --plugins atool-build",
+    "build": "atool-build --config webpack.config.prod.js"
+  },
+  "devDependencies": {
+    "atool-build": "^0.9.3",
+    "babel-core": "^6.24.0",
+    "babel-loader": "^6.4.1",
+    "babel-plugin-flow-runtime": "^0.10.0",
+    "dora": "^0.4.3",
+    "dora-plugin-atool-build": "^0.4.1",
+    "flow-bin": "^0.42.0"
+  },
+  "entry": {
+    "index": "./src/index.js"
+  },
+  "dependencies": {
+    "babel-polyfill": "^6.23.0",
+    "flow-runtime": "^0.10.0"
+  }
+}
