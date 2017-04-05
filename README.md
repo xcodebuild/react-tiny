@@ -10,5 +10,8 @@ npm install
 npm run dev
 ```
 
-for live demo
+Or [Online DEMO](https://codefalling.github.io/react-tiny/demo/)
 
+See example in https://github.com/CodeFalling/react-tiny/blob/gh-pages/demo/src/index.js.
+
+# jsfiddle

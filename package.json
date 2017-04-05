@@ -4,7 +4,8 @@
   "description": "A tiny implementation of React",
   "main": "dist/react-tiny.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "atool-build --config webpack.config.prod.js"
   },
   "keywords": [
     "react"
