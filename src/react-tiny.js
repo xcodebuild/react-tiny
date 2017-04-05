@@ -576,8 +576,15 @@ function createElement(type: string| Function, attributes: ?MapT, ...children: A
     return new ReactElement(type, props);
 }
 
-export default {
+const ReactTiny = {
     createElement,
     render,
     Component: ReactClass,
 };
+
+if (window) {
+    window['ReactTiny'] = ReactTiny;
+}
+
+export default ReactTiny;
+
