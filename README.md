@@ -17,3 +17,7 @@ See example in https://github.com/CodeFalling/react-tiny/blob/gh-pages/demo/src/
 # jsfiddle
 
 There is also a jsfiddle: https://jsfiddle.net/9yarp1wj/
+
+# Notice
+
+**DO NOT** use this in production, this project is build for fun yet.
