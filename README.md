@@ -16,7 +16,7 @@ See example in https://github.com/CodeFalling/react-tiny/blob/gh-pages/demo/src/
 
 # jsfiddle
 
-There is also a jsfiddle: https://jsfiddle.net/9yarp1wj/
+There is also a jsfiddle: https://jsfiddle.net/codefalling/dp1qo5gb/
 
 # notice
 
