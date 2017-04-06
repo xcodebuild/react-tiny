@@ -39,8 +39,16 @@ function getElementByReactIDPrefix(reactID: string): ?Element {
     return document.querySelector(`[${DATA_ATTR_REACT_ID}^="${reactID}"]`);
 }
 
+function propKeyMap(propKey) {
+    const table = {
+        className: 'class',
+    };
+    return table[propKey] || propKey;
+}
+
 function setProp(element: Element, propKey: string, value: any) {
     if (propKey === 'children') return;
+    propKey = propKeyMap(propKey);
     if (propKey === 'value') {
         element.value = value;
     } else {
@@ -57,4 +65,5 @@ export default {
 	getElementByReactID,
 	getElementByReactIDPrefix,
 	setProp,
+    propKeyMap,
 };

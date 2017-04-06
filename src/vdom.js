@@ -12,6 +12,7 @@ import {
     getElementByReactID,
     getElementByReactIDPrefix,
     setProp,
+    propKeyMap,
 } from './utils';
 
 import {DATA_ATTR_REACT_ID} from './const';
@@ -156,6 +157,7 @@ class ReactDOMComponent extends ReactComponent {
                 if (eventName) {
                     eventController.setEventListener(rootID, eventName, propValue);
                 } else if (propKey !== 'children') {
+                    propKey = propKeyMap(propKey);
                     result += `${propKey}=${propValue} `;
                 }
             });
