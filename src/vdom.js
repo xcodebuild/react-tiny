@@ -41,7 +41,7 @@ class ReactElement {
 
     constructor(type: string | Function, props: ?MapT) {
         this.type = type;
-        this.key = get(props, 'key') || null;
+        this.key = toString(get(props, 'key')) || null;
 
         this.props = props;
     }

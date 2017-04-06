@@ -64,7 +64,7 @@ class Hello extends React.Component {
     return <div>
         <div className="todo-container">
           <ul>
-            {this.state.todos.map((item, index) => <li>
+            {this.state.todos.map((item, index) => <li key={index}>
               {item}
              <button className="remove-btn" onClick={e => this.remove(index)}>REMOVE</button>
              </li>)}
