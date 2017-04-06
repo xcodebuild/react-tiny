@@ -4,7 +4,7 @@ module.exports = function(c) {
   c.entry = {
     index: './src/index.js'
   };
-  c.plugins = [];
+  c.plugins.shift();
   c.babel.plugins.push(['flow-runtime', {
     "assert": true,
     "annotate": true

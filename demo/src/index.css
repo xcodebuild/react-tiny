@@ -1,0 +1,12 @@
+.todo-container {
+	width: 200px;
+	border: 1px solid;
+	border-radius: 5px;
+	padding: 10px;
+	position: relative;
+}
+
+.remove-btn {
+	position: absolute;
+	right: 20px;
+}

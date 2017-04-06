@@ -1,4 +1,5 @@
 import 'babel-polyfill';
+import './index.css';
 
 import {createElement, render, Component} from '../../src/react-tiny.js';
 const React = {};
@@ -61,14 +62,16 @@ class Hello extends React.Component {
 
   render() {
     return <div>
-        <ul>
-          {this.state.todos.map((item, index) => <li>
-            {item}
-            <button onClick={e => this.remove(index)}>REMOVE</button>
-            </li>)}
-        </ul>
-        <input type="input" value={this.state.text} onInput={this.handleChange} />
-        <button onClick={this.handleClick}>ADD</button>
+        <div className="todo-container">
+          <ul>
+            {this.state.todos.map((item, index) => <li>
+              {item}
+             <button className="remove-btn" onClick={e => this.remove(index)}>REMOVE</button>
+             </li>)}
+          </ul>
+          <input type="input" value={this.state.text} onInput={this.handleChange} />
+          <button onClick={this.handleClick}>ADD#{this.state.todos.length}</button>
+        </div>
         <div>
           <Click/>
         </div>
