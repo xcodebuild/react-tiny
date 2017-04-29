@@ -1,6 +1,5 @@
-export default {
-	render(element: string, container: Element) {
-		const textNode: Text = document.createTextNode(element);
-		container.appendChild(textNode);
-	}
+export function render(element: string, container: HTMLElement) {
+	const wrapper = document.createElement('span');
+	wrapper.innerText = element;
+	container.appendChild(wrapper);
 }

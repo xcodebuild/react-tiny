@@ -7,10 +7,15 @@
     "test": "tests"
   },
   "devDependencies": {
+    "atool-build": "^0.11.0",
     "atool-test": "^0.5.2"
   },
   "scripts": {
-    "test": "atool-test -k"
+    "test": "atool-test -k -p 8888",
+    "build": "atool-build"
+  },
+  "entry": {
+    "react-tiny.min": "./src/index.ts"
   },
   "repository": {
     "type": "git",
