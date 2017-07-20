@@ -1,0 +1,511 @@
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/jasmine/1.3.1/jasmine.css">
+    <script src="https://cdn.jsdelivr.net/jasmine/1.3.1/jasmine.js"></script>
+    <script src="https://cdn.jsdelivr.net/jasmine/1.3.1/jasmine-html.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/lodash/4.17.4/lodash.min.js"></script>
+</head>
+<script type="text/babel">
+    // init
+    const con = document.createElement('div');
+    con.setAttribute('id', 'test-container');
+    document.body.appendChild(con);
+    function createContainer(name) {
+        const container = document.createElement('div');
+        container.setAttribute('id', 'test-container-' + name);
+        container.append = function() {
+            con.appendChild(container);
+            return container.childNodes[0];
+        };
+        return container;
+    }
+</script>
+
+<script type="text/babel">
+    // code
+    // createElement 返回的元素，实际上就是 VirtualDOM
+    // children 在 props 里
+
+    const DATA_ATTR_REACT_ID = 'data-reactid';
+    let currentRootId = 0;
+
+    function transPropName(propName) {
+        const table = {
+            className: 'class'
+        };
+        if (table[propName]) return table[propName];
+        return propName.split('')
+            .map(c => /A-Z/.test(c) ? `-${c.toLowerCase()}` : c)
+            .join('');
+    }
+
+    function getEventName(name) {
+        return /^on[a-zA-Z_]+/.test(name) ? name.slice(2).toLowerCase() : null;
+    }
+
+    function isInheritFrom(childClass, parentClass) {
+        // https://stackoverflow.com/questions/14486110/how-to-check-if-a-class-inherits-another-without-instanciating-an-object
+        return childClass.prototype instanceof parentClass;
+    }
+
+    function isElementOfPureFunctionalComponent(vElem) {
+        return vElem && typeof vElem.type === 'function' && !isInheritFrom(vElem.type, Component);
+    }
+
+    class VElement {
+        constructor(type, props) {
+            this.type = type;
+            this.props = props;
+        }
+
+        get children() {
+            return this.props && this.props.children;
+        }
+    }
+
+    function findIdParent(id) {
+        const reg = /[.]\d+$/;
+        if (reg.test(id)) {
+            return id.replace(reg, '');
+        }
+    }
+
+    function getElementByReactID(reactID) {
+        return document.querySelector(`[${DATA_ATTR_REACT_ID}="${reactID}"]`);
+    }
+
+    function getElementByReactIDPrefix(reactID) {
+        return document.querySelector(`[${DATA_ATTR_REACT_ID}^="${reactID}"]`);
+    }
+
+    class EventController {
+        constructor() {
+            this._map = {};
+            const allEvent = _.map(_.filter(_.keys(window), item => /^on/.test(item)), item => item.replace(/^on/, ''));
+            _.forEach(allEvent, event => {
+                document.addEventListener(event, e => {
+                    const target = e.target;
+                    const targetID = target.getAttribute && target.getAttribute(DATA_ATTR_REACT_ID);
+
+                    let curID = targetID;
+                    while (curID) {
+                        const callback = _.get(this._map, [curID, event]);
+                        callback && callback(e);
+                        curID = findIdParent(curID);
+                    }
+                });
+            });
+        }
+
+        setEventListener(rootID, eventName, callback) {
+            this._map[rootID] = this._map[rootID] || {};
+            this._map[rootID][eventName] = callback;
+        }
+
+        removeEventListener(rootID, eventName) {
+            if (this._map[rootID]) {
+                this._map[rootID][eventName] = null;
+            }
+        }
+
+        removeAllEventListener(rootID) {
+            this._map[rootID] = {};
+        }
+    }
+
+    const globalEventController = new EventController();
+
+    function instanceInternalComponent(vElem) {
+        if (_.isNull(vElem)) {
+            return new NullInternalComponent(vElem);
+        } else if (_.isString(vElem) || _.isNumber(vElem)) {
+            return new TextInternalComponent(vElem);
+        } else if (_.isArray(vElem)) {
+            return new ListInternalComponent(vElem);
+        } else {
+            if (typeof vElem.type === 'string') {
+                // DOM
+                return new DOMInternalComponent(vElem);
+            } else if (isElementOfPureFunctionalComponent(vElem)) {
+                return new PureFunctionalComponent(vElem);
+            } else if (typeof vElem.type === 'function') {
+                return new CompositeInternalComponent(vElem);
+            }
+        }
+    }
+
+    class Component {
+        // _internalComponent: InternalComponent
+        constructor(props) {
+            this.props = props;
+        }
+
+        setState(nextState) {
+            console.log(nextState)
+            this._internalComponent.receive(void 0, nextState);
+        }
+    }
+
+    class InternalComponent {
+        constructor(vElem) {
+            this._vElem = vElem;
+        }
+    }
+
+    class TextInternalComponent extends InternalComponent {
+        mount(rootID) {
+            this._rootID = rootID;
+            const result = document.createElement('span');
+            result.innerText = this._vElem;
+            result.setAttribute(DATA_ATTR_REACT_ID, rootID);
+            this._dom = result;
+            return result;
+        }
+    }
+
+    class ParentInternalComponent extends InternalComponent {
+        _mountChildren(rootID) {
+            const children = _.isArray(this._vElem) ?
+                this._vElem : _.get(this._vElem.props, 'children');
+            // mount children
+            const result = [];
+            _.forEach(children, (child, index) => {
+                result.push(instanceInternalComponent(child).mount(`${rootID}.${index}`));
+            });
+            return result;
+        }
+    }
+
+    class PureFunctionalComponent extends InternalComponent {
+        mount(rootID) {
+            this._rootID = rootID;
+            return instanceInternalComponent(this._vElem.type(this._vElem.props)).mount(rootID);
+        }
+    }
+
+    class ListInternalComponent extends ParentInternalComponent {
+        mount(rootID) {
+            this._rootID = rootID;
+            return this._mountChildren(rootID);
+        }
+    }
+
+    class DOMInternalComponent extends ParentInternalComponent {
+        mount(rootID) {
+            const {type, props} = this._vElem;
+
+            const result = document.createElement(type);
+            result.setAttribute(DATA_ATTR_REACT_ID, rootID);
+
+            _.forEach(props, (value, key) => {
+                if (key !== 'children') {
+                    const keyResult = transPropName(key);
+                    const eventName = getEventName(key);
+                    if (eventName) {
+                        globalEventController.setEventListener(rootID, eventName, value);
+                    } else {
+                        result.setAttribute(keyResult, value);
+                    }
+                }
+            });
+            const children = this._mountChildren(rootID);
+
+            _.forEach(_.flatten(children), child => {
+                result.appendChild(child);
+            });
+
+            this._dom = result;
+            return result;
+        }
+
+        shouldReceive(nextVElem) {
+            return nextVElem && nextVElem.type === this._vElem.type;
+        }
+
+        receive(nextVElem) {
+            
+        }
+    }
+
+    class NullInternalComponent extends InternalComponent {
+        mount(rootID) {
+            return document.createComment(`${DATA_ATTR_REACT_ID}=${rootID}`);
+        }
+    }
+
+    class CompositeInternalComponent extends InternalComponent {
+        mount(rootID) {
+            this._rootID = rootID;
+            const componentClass = this._vElem.type;
+            const props = this._vElem.props;
+            const componentIns = new componentClass(props);
+            componentIns.componentWillMount && ins.componentWillMount();
+
+            // 获取 render 结果
+            let renderedVElem = componentIns.render();
+
+            while(isElementOfPureFunctionalComponent(renderedVElem)) {
+                renderedVElem = instanceInternalComponent(renderedVElem).mount(rootID);
+            }
+
+            const renderedInternalComponent = instanceInternalComponent(renderedVElem);
+            const result = renderedInternalComponent.mount(rootID);
+
+            componentIns.componentDidMount && componentIns.componentDidMount();
+            componentIns._internalComponent = this;
+            this._renderedInternalComponent = renderedInternalComponent;
+            this._componentInstance = componentIns;
+
+            this._dom = result;
+            return result;
+        }
+
+        shouldReceive(nextVElem) {
+            return nextVElem && nextVElem.type === this._vElem.type;
+        }
+
+        receive(nextVElem, nextState) {
+            nextVElem = nextVElem || this._vElem;
+            const componenetInstance = this._componentInstance;
+            const nextProps = nextVElem.props;
+            nextState = nextState || _instance.state;
+
+            componenetInstance.state = nextState;
+            componenetInstance.props = nextProps;
+
+            if (componenetInstance.shouldComponenetUpdate && 
+                          (componenetInstance.shouldComponenetUpdate(nextProps, nextState))) {
+                componenetInstance.componentWillUpdate(nextProps, nextState);
+            }
+
+            const prevRenderedInternalComponent = this._renderedInternalComponent;
+            const prevRenderedVElem = prevRenderedInternalComponent._vElem;
+            const nextRenderedVElem = componenetInstance.render();
+            if (prevRenderedInternalComponent.shouldReceive(nextRenderedVElem)) {
+
+            } else {
+                this._renderedInternalComponent = instanceInternalComponent(nextRenderedVElem);
+                const nextDOM = this._renderedInternalComponent.mount(this._rootID);
+                if (_.isArray(nextDOM)) {
+                    // list
+                    const lastNextDOM = nextDOM.pop();
+                    this._dom.replaceWith(lastNextDOM);
+                    const parent = lastNextDOM.parentNode;
+                    _.forEach(nextDOM, node => {
+                        parent.insertBefore(node, lastNextDOM);
+                    });
+                } else {
+                    this._dom.replaceWith(nextDOM);
+                }
+            }
+        }
+    }
+
+    function h(type, attrs, ...children) {
+        return new VElement(type, {
+            ...attrs,
+            children,
+        });
+    }
+
+    function render(vElem, container) {
+        container.appendChild(instanceInternalComponent(vElem).mount(currentRootId++));
+    }
+
+    window.React = {
+        createElement: h,
+        render,
+        Component,
+    };
+</script>
+
+<script type="text/babel">
+    // test code
+
+    describe('First-time render', () => {
+        it('string should be rendered into span', function() {
+            const con = createContainer('render-string');
+            render('test', con);
+            const target = con.append();
+
+            expect(target.nodeName).toEqual('SPAN');
+            expect(target.innerText).toEqual('test');
+        });
+
+        it('number should be rendered into span', () => {
+            const con = createContainer('render-number');
+            render(123, con);
+            const target = con.append();
+            expect(target.nodeName).toEqual('SPAN');
+            expect(target.innerText).toEqual('123');
+        });
+
+        it('DOM should be rendered', () => {
+            const con = createContainer('render-DOM');
+            render(
+                <div className="test-class">
+                    <input value="input value"></input>
+                    test string
+                </div>, con);
+            const target = con.append();
+            expect(target.nodeName).toEqual('DIV');
+            expect(target.childNodes[0].getAttribute('value')).toEqual('input value');
+        });
+
+        it('Event should be bind', () => {
+           const con = createContainer('render-bind-event');
+           const funcs = {
+                handleClick: () => {}
+           };
+           spyOn(funcs, 'handleClick');
+           render(<input value="TEST BUTTON" type="button" onClick={funcs.handleClick}/>, con);
+           const target = con.append();
+           target.click();
+           expect(funcs.handleClick).toHaveBeenCalled();
+        });
+
+        it('Could render custom component with props', () => {
+            let willFlag = false;
+            let didMount = false;
+            class CustomComponent extends Component {
+                render() {
+                    return <div>TEST Custom Component:{this.props.name}</div>
+                }
+
+            }
+
+            const con = createContainer('render-custom-component');
+            render(<CustomComponent name="test"/>, con);
+
+            const target = con.append();
+            expect(target.nodeName).toEqual('DIV');
+            expect(target.innerText).toEqual('TEST Custom Component:test');
+        });
+
+        it('Custom component could be nest', () => {
+            class CustomComponent extends Component {
+                render() {
+                    return <div>TEST Custom Component</div>
+                }
+            }
+
+            class CustomParentComponent extends  Component {
+                render() {
+                    return <span>
+                        I AM PARENT
+                        <CustomComponent/>
+                    </span>
+                }
+            }
+
+            const con = createContainer('render-custom-component-with-nest');
+            render(<CustomParentComponent/>, con);
+
+            const target = con.append();
+            expect(target.childNodes[0].nodeName).toEqual('SPAN');
+            expect(target.childNodes[0].innerText).toEqual('I AM PARENT');
+            expect(target.childNodes[1].innerText).toEqual('TEST Custom Component');
+        });
+
+        it('Pure functional component should be rendered', () => {
+            const PureComponent = ({name}) => {
+                return <div>Hello, I AM PURE COMPONENT: {name}</div>
+            };
+            const con = createContainer('render-pure-functional-component');
+            render(<PureComponent name="PureHey"/>, con);
+            const target = con.append();
+
+            expect(target.nodeName).toEqual('DIV');
+            expect(target.innerText).toEqual('Hello, I AM PURE COMPONENT: PureHey');
+        });
+
+        it('Pure functional component could be nest', () => {
+            const PureComponent = ({name}) => {
+                return <span>I AM CHILD {name}</span>
+            };
+
+            const PureParentComponent = ({name}) => {
+                return <div>PARENT HERE<PureComponent name={name}/></div>
+            };
+
+            class CustomParentComponent extends  Component {
+                render() {
+                    return <span>
+                        I AM SUPER PARENT
+                        <PureParentComponent name="test"/>
+                    </span>
+                }
+            }
+
+            const con = createContainer('pure-component-nest');
+            render(<CustomParentComponent/>, con);
+            const target = con.append();
+
+            expect(target.childNodes[0].innerText).toEqual('I AM SUPER PARENT');
+            expect(target.childNodes[1].childNodes[1].innerText).toEqual('I AM CHILD test');
+        });
+
+        it('List should be rendered', () => {
+            const con = createContainer('render-list');
+            render(<div>{[1, 2, 3].map(item => <button>{item}</button>)}</div>, con);
+            const target = con.append();
+            expect(target.childNodes[1].tagName).toEqual('BUTTON');
+            expect(target.childNodes[1].innerText).toEqual('2');
+        });
+
+        it('Null should be rendered as a comment', () => {
+            const con = createContainer('render-null');
+            render(<div>{null}</div>, con);
+            const target = con.append();
+            expect(target.childNodes[0].nodeName).toEqual('#comment');
+        });
+
+    });
+
+    describe('Let\'s setState!', () => {
+        it('setState should work simply', () => {
+            class CustomComponent extends Component {
+                constructor(props) {
+                    super(props);
+                    this.state = {count: 1};
+                    this.handleClick = this.handleClick.bind(this);
+                }
+
+                handleClick(e) {
+                    this.setState({
+                        ...this.state,
+                        count: this.state.count + 1,
+                    });
+                }
+
+                render() {
+                    return <span>
+                        The Count is {this.state.count}
+                        <input value="Click ME" type="button" onClick={this.handleClick}></input>
+                    </span>
+                }
+            }
+
+            const con = createContainer('state-simply-counts');
+            render(<CustomComponent/>, con);
+            const target = con.append();
+            expect(target.childNodes[1].innerText).toEqual('1');
+            for(let i = 0; i < 10; i++) {
+                target.childNodes[2].click();
+                expect(target.childNodes[1].innerText).toEqual(_.toString(i + 1));
+            }
+        });
+    });
+</script>
+
+<script type="text/babel">
+    // load jasmine htmlReporter
+    const env = jasmine.getEnv();
+    env.addReporter(new jasmine.HtmlReporter());
+    env.execute();
+</script>
+
+</html>
