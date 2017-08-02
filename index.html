@@ -262,46 +262,6 @@
             this._dom = result;
             return result;
         }
-
-        shouldReceive(nextVElem) {
-            return nextVElem && nextVElem.type === this._vElem.type;
-        }
-
-        receive(nextVElem, nextState) {
-            nextVElem = nextVElem || this._vElem;
-            const componenetInstance = this._componentInstance;
-            const nextProps = nextVElem.props;
-            nextState = nextState || _instance.state;
-
-            componenetInstance.state = nextState;
-            componenetInstance.props = nextProps;
-
-            if (componenetInstance.shouldComponenetUpdate && 
-                          (componenetInstance.shouldComponenetUpdate(nextProps, nextState))) {
-                componenetInstance.componentWillUpdate(nextProps, nextState);
-            }
-
-            const prevRenderedInternalComponent = this._renderedInternalComponent;
-            const prevRenderedVElem = prevRenderedInternalComponent._vElem;
-            const nextRenderedVElem = componenetInstance.render();
-            if (prevRenderedInternalComponent.shouldReceive(nextRenderedVElem)) {
-
-            } else {
-                this._renderedInternalComponent = instanceInternalComponent(nextRenderedVElem);
-                const nextDOM = this._renderedInternalComponent.mount(this._rootID);
-                if (_.isArray(nextDOM)) {
-                    // list
-                    const lastNextDOM = nextDOM.pop();
-                    this._dom.replaceWith(lastNextDOM);
-                    const parent = lastNextDOM.parentNode;
-                    _.forEach(nextDOM, node => {
-                        parent.insertBefore(node, lastNextDOM);
-                    });
-                } else {
-                    this._dom.replaceWith(nextDOM);
-                }
-            }
-        }
     }
 
     function h(type, attrs, ...children) {
@@ -465,40 +425,6 @@
 
     });
 
-    describe('Let\'s setState!', () => {
-        it('setState should work simply', () => {
-            class CustomComponent extends Component {
-                constructor(props) {
-                    super(props);
-                    this.state = {count: 1};
-                    this.handleClick = this.handleClick.bind(this);
-                }
-
-                handleClick(e) {
-                    this.setState({
-                        ...this.state,
-                        count: this.state.count + 1,
-                    });
-                }
-
-                render() {
-                    return <span>
-                        The Count is {this.state.count}
-                        <input value="Click ME" type="button" onClick={this.handleClick}></input>
-                    </span>
-                }
-            }
-
-            const con = createContainer('state-simply-counts');
-            render(<CustomComponent/>, con);
-            const target = con.append();
-            expect(target.childNodes[1].innerText).toEqual('1');
-            for(let i = 0; i < 10; i++) {
-                target.childNodes[2].click();
-                expect(target.childNodes[1].innerText).toEqual(_.toString(i + 1));
-            }
-        });
-    });
 </script>
 
 <script type="text/babel">
